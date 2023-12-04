@@ -1,0 +1,88 @@
+---
+title: "Lyme Disease"
+author: "Maliat I"
+date: "2023-12-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+disease5_temp<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/lymedisease_combined")
+```
+
+```{r}
+tail(disease5_temp)
+```
+```{r}
+disease5_temp <-disease5_temp [, -5]
+```
+
+
+```{r}
+temp5<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/temo%20201-2016.csv")
+```
+
+```{r}
+head(temp5)
+```
+### Converting weekly case count to monthly
+```{r}
+library(dplyr)
+
+monthly_disease_5 <- disease5_temp %>%
+  group_by(Reporting.Area, MMWR.Year, Month = ((MMWR.Week - 1) %% 12) + 1) %>%
+  summarize(Monthly_Case_Count = sum(Lyme_Disease_Count))
+
+
+```
+```{r}
+head(combined_data5)
+```
+
+
+```{r}
+combined_data5 <- temp5 %>%
+  inner_join(monthly_disease_5, by = c("Reporting.Area", "year" = "MMWR.Year", "month" = "Month"))
+combined_data5 <- combined_data5 %>%
+  arrange(Reporting.Area, year, month)
+```
+
+```{r}
+correlation <- cor(combined_data5$average_temp, combined_data5$Monthly_Case_Count, use = "complete.obs")
+print(correlation)
+```
+```{r}
+state_groups <- combined_data5 %>%
+  group_by(Reporting.Area)
+
+# Function to calculate temperature and case count trends for each state
+calculate_trends4 <- function(df) {
+  # Linear regression for temperature trends
+  temp_trend4 <- lm(average_temp ~ year, data = df)  
+  
+  # Linear regression for case count trends
+  case_count_trend <- lm(Monthly_Case_Count ~ year, data = df)
+  
+  # Calculate slopes for temperature and case count trends
+  temp_slope <- coef(temp_trend4)[2]  # Updated to use 'temp_trend3'
+  case_count_slope <- coef(case_count_trend)[2]
+  
+  return(data.frame(Temp_Slope = temp_slope, Case_Count_Slope = case_count_slope))
+}
+
+# Apply the calculate_trends function to each state group
+trend_results <- state_groups %>%
+  do(calculate_trends4(.))
+```
+
+```{r}
+print(trend_results)
+```
+
