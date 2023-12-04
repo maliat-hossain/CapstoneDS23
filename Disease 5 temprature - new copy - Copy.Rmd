@@ -1,0 +1,239 @@
+---
+title: "Disease 3"
+author: "Maliat I"
+date: "2023-11-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+df1 <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/climdiv_state_year_temerature.csv")
+df2 <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/StateNameFIPS.csv")
+```
+
+
+```{r}
+colnames(df1)[colnames(df1) == "fips"] <- "FIPS.Code"
+```
+
+
+```{r}
+head(df1)
+```
+
+
+```{r}
+merged_df3 <- merge(df1, df2, by = "FIPS.Code", all.x = TRUE)
+```
+
+```{r}
+
+filtered_data_2019 <- subset(merged_df3, year == 2019)
+
+
+```
+
+```{r}
+write.csv(filtered_data_2019, "filtered_data_2019.csv", row.names = FALSE)
+```
+
+
+```{r}
+head(filtered_data_2019)
+```
+
+```{r}
+disease1_temp<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/combined_dataset_disease1_1.csv")
+```
+
+```{r}
+disease1_temp <-disease1_temp [, -5]
+```
+
+```{r}
+head(disease1_temp)
+```
+
+```{r}
+yearly_dataset1 <- disease1_temp %>%
+  group_by(Reporting.Area, MMWR.Year) %>%
+  summarize(Yearly_Case_Count = sum(Ehrlichiosis_Anaplasmosis_Cases_Count))
+
+```
+
+
+
+```{r}
+filtered_df1 <- merged_df3 %>%
+  filter(year %in% c(2014, 2015, 2016, 2017,2018))
+```
+
+
+```{r}
+yearly_dataset1 <- yearly_dataset1 %>%
+  rename(State.Name = Reporting.Area)
+```
+
+
+```{r}
+merged_df_state1 <- merge(yearly_dataset1, filtered_df1, by = "State.Name", all.x = TRUE)
+```
+
+
+
+```{r}
+# Remove rows with any NA values in merged_df_state3
+merged_df_state1 <- merged_df_state1[complete.cases(merged_df_state1), ]
+```
+
+```{r}
+
+```
+
+```{r}
+correlation <- cor(merged_df_state1$temp, merged_df_state1$Yearly_Case_Count, use = "complete.obs")
+
+# Print the correlation coefficient
+cat("Correlation coefficient:", correlation, "\n")
+```
+```{r}
+library(corrplot)
+
+
+correlation <- cor(merged_df_state1$temp, merged_df_state1$Yearly_Case_Count, use = "complete.obs")
+
+# Create a matrix with the correlation coefficient
+correlation_matrix <- matrix(correlation, nrow = 1, ncol = 1)
+
+# Set up the plot
+corrplot(correlation_matrix,
+         method = "square",  # Display as a square matrix
+         type = "lower",    # Display only the lower triangle
+         tl.pos = "d",      # Place labels diagonally
+         diag = FALSE,      # Exclude the diagonal
+         tl.col = "black",  # Label color
+         col = c("blue", "white", "red"),  # Simplified color palette
+         title = "Correlation Matrix")
+
+# Print the correlation coefficient
+cat("Correlation coefficient:", correlation, "\n")
+
+
+```
+
+
+```{r}
+state_groups <- merged_df_state1 %>%
+  group_by(State.Name)
+
+# Function to calculate temperature and case count trends for each state
+calculate_trends3 <- function(df) {
+  # Linear regression for temperature trends
+  temp_trend3 <- lm(tempc ~ MMWR.Year, data = df)  # Updated to use 'tempc' for temperature
+  
+  # Linear regression for case count trends
+  case_count_trend <- lm(Yearly_Case_Count ~ MMWR.Year, data = df)
+  
+  # Calculate slopes for temperature and case count trends
+  temp_slope <- coef(temp_trend3)[2]  # Updated to use 'temp_trend3'
+  case_count_slope <- coef(case_count_trend)[2]
+  
+  return(data.frame(Temp_Slope = temp_slope, Case_Count_Slope = case_count_slope))
+}
+
+# Apply the calculate_trends function to each state group
+trend_results <- state_groups %>%
+  do(calculate_trends3(.))
+
+```
+
+```{r}
+print(trend_results)
+```
+
+```{r}
+filtered_states3 <- trend_results %>%
+  filter(Case_Count_Slope > 0)
+
+# Print the filtered states
+print(filtered_states3)
+```
+
+```{r}
+filtered_states3 <- trend_results %>%
+  filter(Temp_Slope > 0,Case_Count_Slope>0)
+
+# Print the filtered states
+print(filtered_states3)
+```
+
+```{r}
+library(ggplot2)
+
+# Create a bar chart for temperature trend
+ggplot(data = trend_results, aes(x = State.Name, y = Temp_Slope)) +
+  geom_bar(stat = "identity") +
+  labs(x = "State", y = "Temperature Trend") +
+  ggtitle("Temperature Trend Across States")+
+  coord_flip()
+
+# Create a bar chart for case count trend
+ggplot(data = trend_results, aes(x = State.Name, y = Case_Count_Slope)) +
+  geom_bar(stat = "identity") +
+  labs(x = "State", y = "Case Count Trend") +
+  ggtitle("Case Count Trend Across States")+
+  coord_flip()
+```
+```{r}
+# Create a bar chart for temperature trend with flipped axes and orange color
+ggplot(data = trend_results, aes(x = State.Name, y = Temp_Slope, fill = "Temperature")) +
+  geom_bar(stat = "identity") +
+  labs(x = "State", y = "Temperature Trend") +
+  ggtitle("Temperature Trend Across States") +
+  coord_flip() +
+  scale_fill_manual(values = "orange")
+
+# Create a bar chart for case count trend with flipped axes and blue color
+ggplot(data = trend_results, aes(x = State.Name, y = Case_Count_Slope, fill = "Case Count")) +
+  geom_bar(stat = "identity") +
+  labs(x = "State", y = "Case Count Trend") +
+  ggtitle("Case Count Trend Across States") +
+  coord_flip() +
+  scale_fill_manual(values = "blue")
+
+```
+```{r}
+p_temp <- ggplot(data = trend_results, aes(x = State.Name, y = Temp_Slope, fill = "Temperature")) +
+  geom_bar(stat = "identity") +
+  labs(x = "State", y = "Temperature Trend") +
+  ggtitle("Temperature Trend Across States") +
+  coord_flip() +
+  scale_fill_manual(values = "orange") +
+  theme_minimal() +  # Optional theme modification
+  theme(figure_size = c(10, 6))  # Set custom size
+
+# Create a bar chart for case count trend with flipped axes, color, and custom size
+p_case <- ggplot(data = trend_results, aes(x = State.Name, y = Case_Count_Slope, fill = "Case Count")) +
+  geom_bar(stat = "identity") +
+  labs(x = "State", y = "Case Count Trend") +
+  ggtitle("Case Count Trend Across States") +
+  coord_flip() +
+  scale_fill_manual(values = "blue") +
+  theme_minimal() +  # Optional theme modification
+  theme(figure_size = c(10, 6))  # Set custom size
+
+```
+
+
+
