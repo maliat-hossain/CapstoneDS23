@@ -1,0 +1,73 @@
+---
+title: "New Disease 2"
+author: "Maliat I"
+date: "2023-12-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+disease2_temp<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/combined_dataset_disease2.csv")
+```
+
+```{r}
+head(disease2_temp)
+```
+```{r}
+temp1<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/Monthly%20States%20Te%2Cprature%201950-2022.csv")
+```
+### Converting weekly case count to monthly
+```{r}
+library(dplyr)
+
+monthly_disease_2 <- disease2_temp %>%
+  group_by(Reporting.Area, MMWR.Year, Month = ((MMWR.Week - 1) %% 12) + 1) %>%
+  summarize(Monthly_Case_Count = sum(Cryptosporidiosis_Cases_Count))
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+filtered_temp1 <- temp1 %>%
+  rename(Reporting.Area = X) %>%
+  filter(year %in% c(2019, 2020, 2021, 2022))
+
+```
+
+```{r}
+
+head(filtered_temp1)
+
+```
+
+```{r}
+head(monthly_disease_2)
+
+```
+```{r}
+
+combined_data2 <- filtered_temp1 %>%
+  inner_join(monthly_disease_2, by = c("Reporting.Area", "year" = "MMWR.Year", "month" = "Month"))
+combined_data <- combined_data %>%
+  arrange(Reporting.Area, year, month)
+
+```
+
+```{r}
+view(combined_data2)
+```
+### Correlation
+```{r}
+correlation <- cor(combined_data2$Monthly_Case_Count, combined_data2$average_temp)
+print(correlation)
+```
+
