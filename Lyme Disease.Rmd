@@ -1,0 +1,355 @@
+---
+title: "Disease 5"
+author: "Maliat I"
+date: "2023-11-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+lyme1<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Lyme_disease_to_Meningococcal%202014.csv")
+```
+###2014
+```{r}
+head(lyme1)
+```
+
+```{r}
+lyme1_sc1 <- lyme1[, 1:4]
+```
+### 2015
+```{r}
+lyme2<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Lyme_disease_to_Meningococcal%202015.csv")
+```
+
+```{r}
+lyme2_sc2 <- lyme2[, 1:4]
+```
+### 2016
+```{r}
+lyme3<- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Lyme_disease_to_Meningococcal%202016.csv")
+```
+
+```{r}
+lyme3_sc3 <- lyme3[, 1:4]
+```
+
+```{r}
+head(lyme3_sc3)
+```
+
+```{r}
+colnames(lyme3_sc3)[4] <- "Lyme_Disease_Count"
+colnames(lyme2_sc2)[4] <- "Lyme_Disease_Count"
+colnames(lyme1_sc1)[4] <- "Lyme_Disease_Count"
+```
+
+```{r}
+head(lyme1_sc1)
+```
+
+```{r}
+dataset_lyme <- list(lyme1_sc1,lyme2_sc2,lyme3_sc3)
+```
+
+```{r}
+summarize_missing <- function(lyme1_sc1) {
+  lyme1_sc1 %>%
+    gather(key = "variable", value = "value") %>%
+    summarise(Missing_Values = sum(is.na(value)))
+}
+```
+
+```{r}
+missing_data_summary <- dataset_lyme %>%
+  map(summarize_missing)
+```
+
+### Missing Values in the data sets refers to weeks where no cases were reported. The analysis will replace blank cells with 0.
+
+```{r}
+
+dataset_lyme1 <- list(lyme1_sc1,lyme2_sc2,lyme3_sc3)
+dataset_lyme1 <- lapply(dataset_lyme1, function(df) {
+  df[is.na(df)] <- 0
+  return(df)
+})
+```
+
+```{r}
+# Combine all datasets in dataset_list into a single dataset
+combined_dataset_disease5 <- do.call(rbind, dataset_lyme1)
+```
+
+```{r}
+head(combined_dataset_disease5)
+```
+```{r}
+library(lubridate)
+# Sample data with year and week
+year <- 2014
+week <- 2
+
+# Calculate the date by adding (week - 1) * 7 days to January 1st of the year
+start_date <- ymd(paste(year, "01", "01"))
+calculated_date <- start_date + days((week - 1) * 7)
+
+# Print the calculated date
+print(calculated_date)
+```
+```{r}
+library(dplyr)
+
+
+combined_dataset_disease5 <- combined_dataset_disease5 %>%
+  mutate(
+    Date = ymd(paste(MMWR.Year, "01", "01")) + days((MMWR.Week - 1) * 7)
+  )
+
+# View the updated dataset with the new "Date" column
+head(combined_dataset_disease5)
+```
+
+```{r}
+view(combined_dataset_disease5)
+```
+
+```{r}
+# Create a ggplot for Lyme disease count
+ggplot(combined_dataset_disease5, aes(x = Date, y = Lyme_Disease_Count)) +
+  geom_line() +
+  labs(title = "Lyme Disease Count Over Time",
+       x = "Date",
+       y = "Lyme Disease Count") +
+  theme_minimal()
+```
+```{r}
+# Create a ggplot for Lyme disease count with facets for each year
+ggplot(combined_dataset_disease5, aes(x = Date, y = Lyme_Disease_Count)) +
+  geom_line() +
+  labs(title = "Lyme Disease Count Over Time",
+       x = "Date",
+       y = "Lyme Disease Count") +
+  theme_minimal() +
+  facet_wrap(~year(Date), scales = "free")
+```
+```{r}
+ggplot(combined_dataset_disease5, aes(x = Date, y = Lyme_Disease_Count, color = factor(year(Date)))) +
+  geom_line(size = 1) +
+  labs(title = "Lyme Disease Count Over Time",
+       x = "Date",
+       y = "Lyme Disease Count") +
+  theme_minimal() +
+  facet_wrap(~year(Date), scales = "free") +
+  theme(
+    plot.title = element_text(size = 16),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  ) +
+  scale_color_manual(values = c("red", "blue", "green", "purple", "orange")) # Add color choices for each year
+```
+```{r}
+ggplot(lyme1_sc1, aes(x = MMWR.Week, y = Lyme_Disease_Count)) +
+  geom_bar(stat = "identity", fill = "pink") +
+  labs(title = "Lyme Disease by Week in 2014", x = "Week", y = "Number of Cases")
+
+```
+```{r}
+ggplot(lyme2_sc2, aes(x = MMWR.Week, y = Lyme_Disease_Count)) +
+  geom_bar(stat = "identity", fill = "green") +
+  labs(title = "Lyme Disease by Week in 2015", x = "Week", y = "Number of Cases")
+```
+```{r}
+ggplot(lyme3_sc3, aes(x = MMWR.Week, y = Lyme_Disease_Count)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Lyme Disease by Week in 2016", x = "Week", y = "Number of Cases")
+```
+```{r}
+library(prophet)
+```
+
+
+
+```{r}
+# Rename columns for Prophet
+dataset_prophet5 <- combined_dataset_disease5 %>%
+  select(Date, Lyme_Disease_Count) %>%
+  rename(ds = Date, y = Lyme_Disease_Count)
+
+# Create and fit the Prophet model with daily seasonality disabled
+model5 <- prophet(daily.seasonality = FALSE)
+model5 <- fit.prophet(model5, dataset_prophet5)
+
+# Create the future dataframe with the same columns as dataset_prophet
+future5 <- make_future_dataframe(model5, periods = 365)
+
+# Generate forecasts
+forecast5 <- predict(model5, future5)
+
+# Create a "y" column in the future dataset and populate it with predicted values
+future5$y <- forecast5$yhat
+
+# Access predicted values
+predicted_values5 <- forecast5$yhat
+
+# Aggregate predicted values by Reporting.Area
+aggregated_predictions <- forecast5 %>%
+  select(ds, yhat) %>%
+  group_by(ds) %>%
+  summarize(Total_Predicted_Cases = sum(yhat))
+
+# Identify Reporting Areas with the Most Cases in the future by merging with the original dataset
+top_reporting_areas <- combined_dataset_disease5 %>%
+  left_join(aggregated_predictions, by = c("Date" = "ds")) %>%
+  arrange(desc(Total_Predicted_Cases))
+
+# Print the reporting areas with the most predicted cases
+print(top_reporting_areas)
+```
+```{r}
+# Save the imputed data to a CSV file
+write.csv(combined_dataset_disease5,"lymedisease_combined", row.names = FALSE)
+```
+
+```{r}
+library(forecast)
+
+# Your time series data
+time_series_data <- dataset_prophet5$y  
+
+# Calculate ACF and PACF
+acf_result <- acf(time_series_data, lag.max = 52)  # Adjust lag.max as needed
+pacf_result <- pacf(time_series_data, lag.max = 52)  # Adjust lag.max as needed
+
+# Check for significant peaks in ACF and PACF
+significant_lags_acf <- which(abs(acf_result$acf) > 0.2)  # Adjust the threshold as needed
+significant_lags_pacf <- which(abs(pacf_result$acf) > 0.2)  # Adjust the threshold as needed
+
+# Print significant lags
+cat("Significant lags in ACF:", significant_lags_acf, "\n")
+cat("Significant lags in PACF:", significant_lags_pacf, "\n")
+```
+```{r}
+suppressWarnings({
+  # Calculate Mean Absolute Error (MAE)
+  mae <- mean(abs(dataset_prophet5$y - forecast5$yhat))
+  cat("Mean Absolute Error (MAE):", mae, "\n")
+
+  # Calculate Root Mean Squared Error (RMSE)
+  rmse <- sqrt(mean((dataset_prophet5$y - forecast5$yhat)^2))
+  cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+  
+  # Calculate the Mean Squared Error (MSE)
+mse <- mean((dataset_prophet5$y - forecast5$yhat)^2)
+
+# Print the MSE score
+cat("Mean Squared Error (MSE):", mse, "\n")
+
+ 
+})
+```
+
+```{r}
+
+# Subset the data for the year 2017
+forecast_2017 <- forecast5 %>%
+  filter(year(ds) == 2017)
+
+# Calculate summary statistics for the 'trend' column
+summary(forecast_2017$trend)
+
+# Create a plot to visualize the trend
+library(ggplot2)
+
+ggplot(data = forecast_2017, aes(x = ds, y = trend)) +
+  geom_line() +
+  labs(x = "Date", y = "Trend") +
+  ggtitle("Trend for the Year 2017")
+```
+```{r}
+# Calculate MAPE
+mape <- mean(abs((dataset_prophet5$y - forecast5$yhat) / forecast5$yhat)) * 100
+
+# Print MAPE
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
+
+```
+
+### ARIMA
+```{r}
+dataset_arima5 <- combined_dataset_disease5 %>%
+  select(Date, Lyme_Disease_Count) %>%
+  rename(ds = Date, y = Lyme_Disease_Count)
+
+# Convert the dataset into a time series
+ts_data <- ts(dataset_arima5$y, frequency = 365)  # Assuming daily frequency
+
+# Fit an ARIMA model (you may need to adjust the order)
+arima_model <- auto.arima(ts_data)
+
+# Generate forecasts for a specified horizon
+forecast_horizon <- 365
+forecast_arima <- forecast(arima_model, h = forecast_horizon)
+
+
+```
+
+
+```{r}
+# Access predicted values
+predicted_values_arima <- forecast_arima$mean
+
+# Actual values for the forecast horizon (you may need to adjust this)
+actual_values <- ts_data[length(ts_data) - forecast_horizon + 1:length(predicted_values_arima)]
+
+```
+
+```{r}
+suppressWarnings({
+  # Calculate Mean Absolute Error (MAE)
+  mae_arima <- mean(abs(actual_values - predicted_values_arima))
+  cat("Mean Absolute Error (MAE) for ARIMA:", mae_arima, "\n")
+
+  # Calculate Root Mean Squared Error (RMSE)
+  rmse_arima <- sqrt(mean((actual_values - predicted_values_arima)^2))
+  cat("Root Mean Squared Error (RMSE) for ARIMA:", rmse_arima, "\n")
+  
+  # Calculate the Mean Squared Error (MSE)
+  mse_arima <- mean((actual_values - predicted_values_arima)^2)
+  cat("Mean Squared Error (MSE) for ARIMA:", mse_arima, "\n")
+})
+```
+```{r}
+
+set.seed(123)  # Set a seed for reproducibility
+train_size <- 0.8
+train_index <- sample(1:nrow(combined_dataset_disease5), round(train_size * nrow(combined_dataset_disease5)))
+train_data <- combined_dataset_disease5[train_index, ]
+test_data <- combined_dataset_disease5[-train_index, ]
+
+# Fit a Poisson Regression model using the training data
+model <- glm(Lyme_Disease_Count ~ MMWR.Year, data = train_data, family = poisson)
+
+# Make predictions on the test data
+test_predictions <- predict(model, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions - test_data$Lyme_Disease_Count))
+mse <- mean((test_predictions - test_data$Lyme_Disease_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error for Poisson Regression (MAE):", mae, "\n")
+cat("Mean Squared Error for Poisson Regression (MSE):", mse, "\n")
+cat("Root Mean Squared Error for Poisson Regression (RMSE):", rmse, "\n")
+
+# Perform a deviance goodness-of-fit test
+null_model <- glm(Lyme_Disease_Count ~ 1, data = train_data, family = poisson)
+deviance_test <- anova(null_model, model, test = "Chisq")
+print(deviance_test)
+```
+
