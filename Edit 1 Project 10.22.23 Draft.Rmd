@@ -1,0 +1,1171 @@
+---
+title: "Capstone Prediction Model"
+author: "Maliat I"
+date: "2023-10-08"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+dataanae<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_TABLE_1K._Ehrlichiosis_and_Anaplasmosis__Anaplasma_phagocytophilum_infection_to_Ehrlichia_chaffeensis_infection%20(1).csv")
+```
+
+```{r}
+head(dataanae)
+```
+```{r}
+dataanae_selected_columns22 <- dataanae[, 1:4]
+```
+### 2014
+```{r}
+dataanae14<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Ehrlichiosis_Anaplasmosis.csv")
+```
+
+```{r}
+dataanae_14 <- dataanae14[, 1:4]
+```
+### 215
+```{r}
+datanae15<- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Ehrlichiosis_Anaplasmosis%20(3).csv")
+```
+
+```{r}
+dataanae_15 <- datanae15[, 1:4]
+```
+
+```{r}
+head(dataanae_15)
+```
+```{r}
+summary(dataanae_15)
+```
+
+```{r}
+summary(dataanae_14)
+```
+### Changing column names
+```{r}
+colnames(dataanae_14)[4] <- "Ehrlichiosis_Anaplasmosis_Cases"
+```
+
+```{r}
+colnames(dataanae_15)[4] <- "Ehrlichiosis_Anaplasmosis_Cases15"
+```
+
+
+```{r}
+ggplot(dataanae_15, aes(x = MMWR.Week, y = Ehrlichiosis_Anaplasmosis_Cases15)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Ehrlichiosis & Anaplasmosis Cases by Week in 2015", x = "Week", y = "Number of Cases")
+```
+
+
+```{r}
+ggplot(dataanae_14, aes(x = MMWR.Week, y = Ehrlichiosis_Anaplasmosis_Cases)) +
+  geom_bar(stat = "identity", fill = "green") +
+  labs(title = "Ehrlichiosis & Anaplasmosis Cases by Week in 2014", x = "Week", y = "Number of Cases")
+```
+
+```{r}
+dataanae16<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Ehrlichiosis_Anaplasmosis%20(4).csv")
+```
+
+
+
+
+```{r}
+dataanae_16 <- dataanae16[, 1:4]
+```
+
+
+```{r}
+colnames(dataanae_16)[4] <- "Ehrlichiosis_Anaplasmosis_Cases16"
+```
+
+```{r}
+ggplot(dataanae_16, aes(x = MMWR.Week, y = Ehrlichiosis_Anaplasmosis_Cases16)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  labs(title = "Ehrlichiosis & Anaplasmosis Cases by Week in 2016", x = "Week", y = "Number of Cases")
+```
+### 2018 Datasets
+```{r}
+dataanae18<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Ehrlichiosis_and_Anaplasmosis__Ehrlichia_ewingii_infection_to_Undetermined%202018.csv")
+dataanae_18 <- dataanae18[, 1:4]
+colnames(dataanae_18)[4] <- "Ehrlichiosis_Anaplasmosis_Cases18"
+```
+
+```{r}
+ggplot(dataanae_18, aes(x = MMWR.Week, y = Ehrlichiosis_Anaplasmosis_Cases18)) +
+  geom_bar(stat = "identity", fill = "purple") +
+  labs(title = "Ehrlichiosis & Anaplasmosis Cases by Week in 2018", x = "Week", y = "Number of Cases")
+```
+### 2017 Dataset
+
+```{r}
+dataanae17<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Ehrlichiosis_and_Anaplasmosis.csv")
+dataanae_17 <- dataanae17[, 1:4]
+colnames(dataanae_17)[4] <- "Ehrlichiosis_Anaplasmosis_Cases17"
+```
+
+```{r}
+ggplot(dataanae_17, aes(x = MMWR.Week, y = Ehrlichiosis_Anaplasmosis_Cases17)) +
+  geom_bar(stat = "identity", fill = "pink") +
+  labs(title = "Ehrlichiosis & Anaplasmosis Cases by Week in 2017", x = "Week", y = "Number of Cases")
+```
+
+
+
+### Missing Data:
+#### Creating List of Datasets to Look for Missing data:
+
+```{r}
+dataset_list <- list(dataanae_14, dataanae_15,dataanae_16,dataanae_18,dataanae_17)
+```
+
+```{r}
+summarize_missing <- function(dataanae_14) {
+  dataanae_14 %>%
+    gather(key = "variable", value = "value") %>%
+    summarise(Missing_Values = sum(is.na(value)))
+}
+```
+
+```{r}
+missing_data_summary <- dataset_list %>%
+  map(summarize_missing)
+```
+
+
+
+```{r}
+print(missing_data_summary)
+```
+### Missing Values in the data sets refers to weeks where no cases were reported. The analysis will replace blank cells with 0.
+
+```{r}
+
+dataset_list1 <- list(dataanae_14, dataanae_15,dataanae_16,dataanae_18,dataanae_17)
+dataset_list1 <- lapply(dataset_list1, function(df) {
+  df[is.na(df)] <- 0
+  return(df)
+})
+```
+
+```{r}
+head_list <- lapply(dataset_list1, head)
+print(head_list)
+```
+
+### Combining all the datasets
+
+
+```{r}
+# Rename the fourth column in all datasets to "new_common_name"
+dataset_list1 <- lapply(dataset_list1, function(df) {
+  colnames(df)[4] <- "Ehrlichiosis_Anaplasmosis_Cases_Count"
+  return(df)
+})
+```
+
+```{r}
+# Combine all datasets in dataset_list into a single dataset
+combined_dataset_disease1 <- do.call(rbind, dataset_list1)
+```
+
+```{r}
+view(combined_dataset_disease1)
+```
+### Checking for seasonality
+
+```{r}
+library(stats)
+```
+
+```{r}
+ts_list <- list()
+
+# Unique reporting areas in the data
+reporting_areas <- unique(combined_dataset_disease1$`Reporting.Area`)
+
+# Looping through each reporting area
+for (area in reporting_areas) {
+  # Subset the data for the current reporting area
+  subset_data <- combined_dataset_disease1[combined_dataset_disease1$`Reporting.Area` == area, ]
+
+  # Convert the relevant column to a numeric vector (replace 'CasesColumn')
+  cases_vector <- as.numeric(subset_data$`Ehrlichiosis_Anaplasmosis_Cases_Count`)
+
+  # Create a time series object with appropriate frequency (e.g., weekly)
+  ts_data <- ts(cases_vector, start = c(2014, 1), frequency = 52)  
+
+  # Store the time series object in the list
+  ts_list[[area]] <- ts_data
+}
+
+```
+
+```{r}
+# Loop through each time series in the list
+for (area in names(ts_list)) {
+  ts_data <- ts_list[[area]]
+  
+  # Check for non-finite x-axis values in the time series
+  if (any(!is.finite(time(ts_data)))) {
+    cat("Non-finite values in the x-axis of time series for", area, "\n")
+    
+  }
+  else {
+    # Plot the time series
+    plot(ts_data, xlab = "Time", ylab = "Values", main = paste("Time Series Plot for", area))
+  
+  }
+}
+```
+
+
+```{r}
+# Loop through each time series in the list
+for (area in names(ts_list)) {
+  ts_data <- ts_list[[area]]
+  
+  # Check for non-finite x-axis values in the time series
+  if (any(!is.finite(time(ts_data)))) {
+    cat("Non-finite values in the x-axis of time series for", area, "\n")
+   
+  }
+  else {
+   plot(ts_data, xlab = "Time", ylab = "Values", main = paste("Time Series Plot for", area),
+     col = c("blue", "orange", "green"))
+    
+  }
+}
+```
+
+
+```{r}
+ts_data <- na.omit(ts_data)
+
+```
+
+```{r}
+
+
+non_finite_values <- !is.finite(ts_data)
+
+print(non_finite_values)
+```
+
+```{r}
+# Define the small constant
+small_constant <- 1e-5
+
+# Iterate through the list and add the small constant to each time series
+for (area in names(ts_list)) {
+  ts_list[[area]] <- ts_list[[area]] + small_constant
+}
+```
+
+```{r}
+for (area in names(ts_list)) {
+  stl_result <- stl(ts_list[[area]], s.window = "periodic")
+  plot(stl_result$time.series[, "seasonal"], main = paste("Seasonal Component Plot for", area))
+}
+```
+
+### Checking for seasonality:
+
+
+
+```{r}
+# Initialize a data frame to store results
+seasonality_summary <- data.frame(State = character(0), SeasonalAutocorrelation = numeric(0))
+
+# Iterate through each state's time series
+for (area in names(ts_list)) {
+  ts_data <- ts_list[[area]]
+  
+  # Calculate autocorrelation at seasonal lag (52 weeks for weekly data)
+  acf_result <- acf(ts_data, lag.max = 52, plot = FALSE)
+  seasonal_autocorrelation <- acf_result$acf[52]
+  
+  # Check if the autocorrelation is significantly different from zero 
+  is_seasonal <- abs(seasonal_autocorrelation) > 0.2  
+  
+  # Add results to the summary data frame
+  seasonality_summary <- rbind(seasonality_summary, data.frame(State = area, SeasonalAutocorrelation = seasonal_autocorrelation, IsSeasonal = is_seasonal))
+}
+
+# Print the summary
+print(seasonality_summary)
+```
+
+
+```{r}
+
+library(ggseas)
+```
+
+### Seasonality L jung test
+### Checking for seasonality with significance value.
+
+```{r}
+
+ts_data <- na.omit(ts_data)
+ljung_box_test <- Box.test(ts_data, lag = 12, type = "Ljung-Box")
+
+# Check the p-value from the test
+p_value <- ljung_box_test$p.value
+
+# Set a significance level (e.g., 0.05)
+alpha <- 0.05
+
+
+
+# Check if the p-value is less than the significance level
+# Check if p_value is not missing and less than the significance level
+if (!is.na(p_value) && p_value < alpha) {
+  cat("The time series data exhibits seasonality (rejects the null hypothesis)\n")
+} else {
+  cat("The time series data does not exhibit seasonality (fails to reject the null hypothesis)\n")
+}
+```
+### Failed to create the ARIMA. Therefore, creating the Poisson Regression
+
+```{r}
+
+# Create a subset, excluding weeks with zero cases
+subset_data <- combined_dataset_disease1[combined_dataset_disease1$Ehrlichiosis_Anaplasmosis_Cases_Count > 0, ]
+```
+
+
+```{r}
+# Fit a Poisson Regression model using your existing data
+model <- glm(Ehrlichiosis_Anaplasmosis_Cases_Count ~ MMWR.Year, data = subset_data, family = poisson)
+
+# Create a dataframe for future years (2019, 2020, 2021, 2022, and 2023)
+future_years <- data.frame(MMWR.Year = c(2019, 2020, 2021, 2022, 2023))
+
+# Predict Anaplasmosis cases for each reporting area for future years
+predicted_counts <- predict(model, newdata = future_years, type = "response")
+
+# Create a new dataframe with reporting areas and predicted counts
+future_predictions <- data.frame(
+  Reporting.Area = rep(unique(subset_data$Reporting.Area), each = length(future_years$MMWR.Year)),
+  MMWR.Year = rep(future_years$MMWR.Year, times = length(unique(subset_data$Reporting.Area))),
+  Predicted_Count = rep(predicted_counts, times = length(unique(subset_data$Reporting.Area)))
+)
+
+
+future_predictions$Predicted_Count <- floor(future_predictions$Predicted_Count)
+
+
+# View the predictions for all reporting areas for future years
+print(future_predictions)
+```
+
+
+
+```{r}
+set.seed(123)  # Set a seed for reproducibility
+train_size <- 0.8
+train_index <- sample(1:nrow(subset_data), round(train_size * nrow(subset_data)))
+train_data <- subset_data[train_index, ]
+test_data <- subset_data[-train_index, ]
+
+# Fit a Poisson Regression model using the training data
+model <- glm(Ehrlichiosis_Anaplasmosis_Cases_Count ~ MMWR.Year, data = train_data, family = poisson)
+
+# Make predictions on the test data
+test_predictions <- predict(model, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions - test_data$Ehrlichiosis_Anaplasmosis_Cases_Count))
+mse <- mean((test_predictions - test_data$Ehrlichiosis_Anaplasmosis_Cases_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# Perform a deviance goodness-of-fit test
+null_model <- glm(Ehrlichiosis_Anaplasmosis_Cases_Count ~ 1, data = train_data, family = poisson)
+deviance_test <- anova(null_model, model, test = "Chisq")
+print(deviance_test)
+
+
+```
+
+```{r}
+library(ggplot2)
+
+# Create a line plot of predicted counts over time for each reporting area
+ggplot(data = future_predictions, aes(x = MMWR.Year, y = Predicted_Count, group = Reporting.Area, color = Reporting.Area)) +
+  geom_line() +
+  labs(title = "Predicted Anaplasmosis Cases Over Time by Reporting Area",
+       x = "Year",
+       y = "Predicted Count") +
+  scale_color_discrete(name = "Reporting Area") +  # Legend title
+  theme(legend.position = "top")  # Move the legend to the top
+```
+
+```{r}
+library(ggplot2)
+
+# Create a grouped bar plot for each unique reporting area
+ggplot(data = future_predictions, aes(x = as.factor(MMWR.Year), y = Predicted_Count)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "blue") +
+  labs(title = "Predicted Anaplasmosis Cases by Year",
+       x = "Year",
+       y = "Predicted Count") +
+  scale_fill_discrete(name = "Reporting Area") +  # Legend title
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  facet_wrap(~ Reporting.Area, ncol = 4)  # Create separate plots for each reporting area, 4 columns per row
+```
+
+
+
+
+
+
+
+
+### Cryptosporidiosis
+### 2019
+
+```{r}
+Disease22019<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_TABLE_1I._Cryptosporidiosis_to_Cyclosporiasis%202019.csv")
+Disease2_19 <- Disease22019[, 1:4]
+colnames(Disease2_19)[4] <- "Cryptosporidiosis_Cases19"
+```
+
+```{r}
+ggplot(Disease2_19, aes(x = MMWR.Week, y = Cryptosporidiosis_Cases19)) +
+  geom_bar(stat = "identity", fill = "grey") +
+  labs(title = "Cryptosporidiosis Cases in 2019", x = "Week", y = "Number of Cases")
+```
+
+
+### 2022
+```{r}
+Disease22022<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_1I._Cryptosporidiosis_to_Cyclosporiasis%202022.csv")
+Disease2_22 <- Disease22022[, 1:4]
+colnames(Disease2_22)[4] <- "Cryptosporidiosis_Cases22"
+```
+
+```{r}
+ggplot(Disease2_22, aes(x = MMWR.Week, y = Cryptosporidiosis_Cases22)) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  labs(title = "Cryptosporidiosis Cases in 2022", x = "Week", y = "Number of Cases")
+```
+### 2020
+```{r}
+Disease2_2020<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_1I._Cryptosporidiosis_to_Cyclosporiasis%202020.csv")
+Disease2_20 <- Disease2_2020[, 1:4]
+colnames(Disease2_20)[4] <- "Cryptosporidiosis_Cases20"
+```
+
+```{r}
+ggplot(Disease2_20, aes(x = MMWR.Week, y = Cryptosporidiosis_Cases20)) +
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  labs(title = "Cryptosporidiosis Cases in 2020", x = "Week", y = "Number of Cases")
+```
+```{r}
+head(Disease2_22)
+```
+
+### 2020
+```{r}
+Disease2_2021<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_1I._Cryptosporidiosis_to_Cyclosporiasis%202021.csv")
+Disease2_21 <- Disease2_2021[, 1:4]
+colnames(Disease2_21)[4] <- "Cryptosporidiosis_Cases21"
+```
+
+```{r}
+ggplot(Disease2_21, aes(x = MMWR.Week, y = Cryptosporidiosis_Cases21)) +
+  geom_bar(stat = "identity", fill = "green") +
+  labs(title = "Cryptosporidiosis Cases in 2021", x = "Week", y = "Number of Cases")
+```
+### Missing Values
+
+```{r}
+dataset_list2 <- list(Disease2_19, Disease2_20,Disease2_21,Disease2_22)
+```
+
+
+```{r}
+summarize_missing <- function(Disease2_19) {
+  Disease2_19 %>%
+    gather(key = "variable", value = "value") %>%
+    summarise(Missing_Values = sum(is.na(value)))
+}
+```
+
+```{r}
+missing_data_summary <- dataset_list2 %>%
+  map(summarize_missing)
+```
+
+
+
+```{r}
+print(missing_data_summary)
+```
+
+### Missing values refer to the weeks with Zero cases. All of them are going to be replaced by zero
+```{r}
+
+
+dataset_list2 <- lapply(dataset_list2, function(df) {
+  df[is.na(df)] <- 0
+  return(df)
+})
+```
+
+```{r}
+# Rename the fourth column in all datasets to "new_common_name"
+dataset_list2 <- lapply(dataset_list2, function(df) {
+  colnames(df)[4] <- "Cryptosporidiosis_Cases_Count"
+  return(df)
+})
+```
+
+```{r}
+# Combine all datasets in dataset_list into a single dataset
+combined_dataset_disease2 <- do.call(rbind, dataset_list2)
+```
+
+```{r}
+# Save the dataset as a CSV file
+write.csv(combined_dataset_disease2, "combined_dataset_disease2.csv", row.names = FALSE)
+```
+
+
+```{r}
+head(combined_dataset_disease2)
+```
+### Unsuccessful in creating ARIMA
+
+library(forecast)
+
+combined_dataset_disease2$Date <- as.Date(paste(combined_dataset_disease2$MMWR.Year, combined_dataset_disease2$MMWR.Week, "1", sep="-"), format="%Y-%U-%u")
+
+# Create a time series object
+ts_data <- ts(combined_dataset_disease2$Cryptosporidiosis_Cases_Count, frequency = 52)  # Assuming weekly data
+
+# Define the time period for training and testing
+training_end_year <- 2022
+forecast_years <- c(2024, 2025, 2026)
+
+# Filter data for training
+train_data <- window(ts_data, end = c(training_end_year, 52))
+
+# Fit an ARIMA model (you can choose the appropriate model based on your data)
+arima_model <- auto.arima(train_data, lambda = 0)  # Set lambda = 0 to handle 0 values
+
+# Create empty data frames for predictions
+predictions_df <- data.frame()
+
+# Generate forecasts for each forecast year
+for (year in forecast_years) {
+  # Define the time period for testing
+  test_start_date <- as.Date(paste(year, "01", "1", sep="-"), format="%Y-%m-%u")
+  test_end_date <- as.Date(paste(year, "12", "7", sep="-"), format="%Y-%m-%u")
+  
+  # Filter data for testing
+  test_data <- window(ts_data, start = test_start_date, end = test_end_date)
+  
+  # Generate forecasts
+  forecast_values <- forecast(arima_model, h = length(test_data))
+  
+  # Extract the forecasted values
+  forecasted_cases <- forecast_values$mean
+  
+  # Create a data frame for the predictions
+  year_predictions_df <- data.frame(
+    Reporting.Area = combined_dataset_disease2$Reporting.Area,
+    Year = rep(year, length(forecasted_cases)),
+    Cryptosporidiosis_Cases_Count = forecasted_cases
+  )
+  
+  # Append to the main predictions data frame
+  predictions_df <- rbind(predictions_df, year_predictions_df)
+}
+
+# View the predictions
+print(predictions_df)
+
+
+
+plot(train_data)
+
+
+stationary_data <- diff(train_data, differences = 1)
+
+### Poisson Regression
+
+
+```{r}
+set.seed(123)  # Set a seed for reproducibility
+train_size <- 0.8
+train_index <- sample(1:nrow(combined_dataset_disease2), round(train_size * nrow(combined_dataset_disease2)))
+train_data <- combined_dataset_disease2[train_index, ]
+test_data <- combined_dataset_disease2[-train_index, ]
+
+# Fit a Poisson Regression model using the training data
+model <- glm(Cryptosporidiosis_Cases_Count ~ MMWR.Year, data = train_data, family = poisson)
+
+# Make predictions on the test data
+test_predictions <- predict(model, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions - test_data$Cryptosporidiosis_Cases_Count))
+mse <- mean((test_predictions - test_data$Cryptosporidiosis_Cases_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# Perform a deviance goodness-of-fit test
+null_model <- glm(Cryptosporidiosis_Cases_Count ~ 1, data = train_data, family = poisson)
+deviance_test <- anova(null_model, model, test = "Chisq")
+print(deviance_test)
+```
+
+```{r}
+future_years <- c(2023, 2024, 2025)
+
+# Create a data frame for future predictions
+future_predictions <- data.frame()
+
+# Iterate over each reporting area and future year
+for (area in unique(combined_dataset_disease2$Reporting.Area)) {
+  for (year in future_years) {
+    # Create a new data frame with the reporting area and year
+    new_data <- data.frame(Reporting.Area = area, MMWR.Year = year)
+    
+    # Predict the number of cases using the trained Poisson Regression model
+    predicted_cases <- predict(model, newdata = new_data, type = "response")
+    
+    # Append the results to the future_predictions data frame
+    future_predictions <- rbind(future_predictions, data.frame(Reporting.Area = area, MMWR.Year = year, Predicted_Cases = predicted_cases))
+  }
+}
+
+future_predictions <- future_predictions %>%
+  mutate(Predicted_Cases = ifelse(Predicted_Cases < 0 | Predicted_Cases < 1, 0, floor(Predicted_Cases)))
+
+
+# View the future predictions data frame
+print(future_predictions)
+```
+
+```{r}
+# Filter data for the years 2023, 2024, and 2025
+data_2023_2025 <- subset(future_predictions, MMWR.Year %in% c(2023, 2024, 2025))
+
+# Identify the top 5 reporting areas with the highest case counts
+top_5_high <- head(arrange(data_2023_2025, desc(Predicted_Cases)), 5)
+
+# Identify the top 5 reporting areas with the lowest case counts
+top_5_low <- head(arrange(data_2023_2025, Predicted_Cases), 5)
+
+# Combine the top 5 high and top 5 low dataframes
+top_10_areas <- rbind(top_5_high, top_5_low)
+
+# Create a bar plot for the top 10 reporting areas
+barplot(top_10_areas$Predicted_Cases, names.arg = paste(top_10_areas$Reporting.Area, top_10_areas$MMWR.Year),
+        xlab = "Reporting Area and Year", ylab = "Predicted Cases",
+        main = "Top 5 Reporting Areas with Highest and Lowest Cases (2023-2025)",
+        col = c(rep("skyblue", 5), rep("lightcoral", 5)), ylim = c(0, max(top_10_areas$Predicted_Cases) * 1.2))
+
+# Add labels to the bars
+text(x = 1:10, y = top_10_areas$Predicted_Cases + 5,
+     labels = top_10_areas$Predicted_Cases, pos = 3, cex = 0.8)
+
+# Show the plot
+
+```
+```{r}
+# Filter data for the years 2023, 2024, and 2025
+data_2023_2025 <- subset(future_predictions, MMWR.Year %in% c(2023, 2024, 2025))
+
+# Identify the top 5 reporting areas with the highest case counts
+top_5_high <- head(arrange(data_2023_2025, desc(Predicted_Cases)), 5)
+
+# Identify the top 5 reporting areas with the lowest case counts
+top_5_low <- head(arrange(data_2023_2025, Predicted_Cases), 5)
+
+# Combine the top 5 high and top 5 low dataframes
+top_10_areas <- rbind(top_5_high, top_5_low)
+
+# View the data frame with the top 10 reporting areas
+print(top_10_areas)
+```
+
+```{r}
+# Fit an ANCOVA model
+ancova_model <- lm(Cryptosporidiosis_Cases_Count ~ Reporting.Area + MMWR.Year + MMWR.Week, data = train_data)
+
+# Summarize the ANCOVA results
+summary(ancova_model)
+```
+
+
+
+### Giardiasis:
+### 2014
+
+
+```{r}
+Disease3_2014<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Giardiasis_to_Haemophilus_influenza%202014.csv")
+Disease3_14 <-Disease3_2014 [, 1:4]
+colnames(Disease3_14)[4] <- "Giardiasis_Cases14"
+```
+
+### 2015
+```{r}
+Disease3_2015<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Giardiasis_to_Haemophilus_influenza%202015.csv")
+Disease3_15 <-Disease3_2015 [, 1:4]
+colnames(Disease3_15)[4] <- "Giardiasis_Cases15"
+```
+
+### 2016
+
+```{r}
+Disease3_2016<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Giardiasis_to_Haemophilus_influenza%202016.csv")
+Disease3_16 <-Disease3_2016 [, 1:4]
+colnames(Disease3_16)[4] <- "Giardiasis_Cases16"
+```
+
+### 2017
+
+```{r}
+Disease3_2017<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Giardiasis_to_Haemophilus_influenza%202017.csv")
+Disease3_17 <-Disease3_2017 [, 1:4]
+colnames(Disease3_17)[4] <- "Giardiasis_Cases17"
+```
+
+### 2018
+
+```{r}
+Disease3_2018<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_Table_II._Giardiasis_to_Haemophilus_influenza%202018.csv")
+Disease3_18 <-Disease3_2018 [, 1:4]
+colnames(Disease3_18)[4] <- "Giardiasis_Cases18"
+```
+
+### Missing Data:
+#### Creating List of Datasets to Look for Missing data:
+
+```{r}
+dataset_list3 <- list(Disease3_14, Disease3_15,Disease3_16,Disease3_17,Disease3_18)
+```
+
+```{r}
+summarize_missing <- function(Disease3_14) {
+  Disease3_14 %>%
+    gather(key = "variable", value = "value") %>%
+    summarise(Missing_Values = sum(is.na(value)))
+}
+```
+
+```{r}
+missing_data_summary <- dataset_list3 %>%
+  map(summarize_missing)
+```
+
+
+
+```{r}
+print(missing_data_summary)
+```
+### Missing values refer to the weeks with Zero cases. All of them are going to be replaced by zero
+```{r}
+
+
+dataset_list3 <- lapply(dataset_list3, function(df) {
+  df[is.na(df)] <- 0
+  return(df)
+})
+```
+
+```{r}
+# Rename the fourth column in all datasets to "new_common_name"
+dataset_list3 <- lapply(dataset_list3, function(df) {
+  colnames(df)[4] <- "Giardiasis_Cases_Count"
+  return(df)
+})
+```
+
+```{r}
+# Combine all datasets in dataset_list into a single dataset
+combined_dataset_disease3 <- do.call(rbind, dataset_list3)
+```
+
+```{r}
+head(combined_dataset_disease3)
+```
+```{r}
+ggplot(combined_dataset_disease3, aes(x = MMWR.Week, y = Giardiasis_Cases_Count)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Giardiasis Cases Count from 2014 to 2018", x = "Week", y = "Number of Cases")
+```
+### Poisson Regression
+
+```{r}
+set.seed(123)  # Set a seed for reproducibility
+train_size <- 0.8
+train_index <- sample(1:nrow(combined_dataset_disease3), round(train_size * nrow(combined_dataset_disease3)))
+train_data <- combined_dataset_disease3[train_index, ]
+test_data <- combined_dataset_disease3[-train_index, ]
+
+# Fit a Poisson Regression model using the training data
+model <- glm(Giardiasis_Cases_Count ~ MMWR.Year, data = train_data, family = poisson)
+
+# Make predictions on the test data
+test_predictions <- predict(model, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions - test_data$Giardiasis_Cases_Count))
+mse <- mean((test_predictions - test_data$Giardiasis_Cases_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error for Poisson Regression (MAE):", mae, "\n")
+cat("Mean Squared Error for Poisson Regression (MSE):", mse, "\n")
+cat("Root Mean Squared Error for Poisson Regression (RMSE):", rmse, "\n")
+
+# Perform a deviance goodness-of-fit test
+null_model <- glm(Giardiasis_Cases_Count ~ 1, data = train_data, family = poisson)
+deviance_test <- anova(null_model, model, test = "Chisq")
+print(deviance_test)
+```
+
+
+```{r}
+# Fit an ANCOVA model
+ancova_model <- lm(Giardiasis_Cases_Count ~ Reporting.Area + MMWR.Year + MMWR.Week, data = train_data)
+
+# Summarize the ANCOVA results
+summary(ancova_model)
+```
+
+```{r}
+# Use the ANCOVA model to make predictions on the test dataset
+predictions <- predict(ancova_model, newdata = test_data)
+
+# Calculate MAE
+mae <- mean(abs(predictions - test_data$Giardiasis_Cases_Count))
+
+# Calculate MSE
+mse <- mean((predictions - test_data$Giardiasis_Cases_Count)^2)
+
+# Calculate RMSE
+rmse <- sqrt(mse)
+
+# Print the results
+cat("Mean Absolute Error for ANCOVA model (MAE):", mae, "\n")
+cat("Mean Squared Error for ANCOVA model (MSE):", mse, "\n")
+cat("Root Mean Squared Error for ANCOVA model (RMSE):", rmse, "\n")
+```
+```{r}
+view(combined_dataset_disease3)
+```
+
+```{r}
+# Define the future years
+future_years3 <- c(2023, 2024, 2025)
+
+# Create a data frame for future predictions
+future_predictions3 <- data.frame()
+
+# Iterate over each reporting area and future year
+for (area in unique(combined_dataset_disease3$Reporting.Area)) {
+  for (year in future_years) {
+    # Create a new data frame with the reporting area, year, and placeholder value for MMWR.Week
+    new_data <- data.frame(Reporting.Area = area, MMWR.Year = year, MMWR.Week = 1)  # Adjust the placeholder value as needed
+    
+    # Predict the number of cases using the trained ancova_model
+    predicted_cases3 <- predict(ancova_model, newdata = new_data, type = "response")
+    
+    # Append the results to the future_predictions data frame
+    future_predictions3 <- rbind(future_predictions3, data.frame(Reporting.Area = area, MMWR.Year = year, Predicted_Cases3 = predicted_cases3))
+  }
+}
+
+future_predictions3 <- future_predictions3 %>%
+  mutate(Predicted_Cases3 = ifelse(Predicted_Cases3 < 0 | Predicted_Cases3 < 1, 0, floor(Predicted_Cases3)))
+
+
+# View the future predictions data frame
+print(future_predictions3)
+
+
+```
+```{r}
+save(future_predictions3, file = "future_predictions3.RData")
+```
+
+```{r}
+write.csv(future_predictions3, file = "future_predictions3.csv", row.names = FALSE)
+```
+
+
+
+### Checking for seasonality:
+### Giardiasis & Cryptosporidiosis
+
+```{r}
+library(stats)
+
+
+# Combine 'MMWR.Year' and 'MMWR.Week' columns to create a date column
+combined_dataset_disease3$Date <- as.Date(paste0(combined_dataset_disease3$MMWR.Year, "-W", combined_dataset_disease3$MMWR.Week, "-1"), format = "%Y-W%U-%u")
+
+# Extract the relevant time series column (Giardiasis_Cases_Count)
+time_series_data <- ts(combined_dataset_disease3$Giardiasis_Cases_Count, frequency = 52)  # Assuming weekly data
+
+# Perform the Ljung-Box test to check for seasonality
+# Specify the number of lags to test (e.g., lag = 52 for yearly seasonality)
+result <- Box.test(time_series_data, lag = 52, type = "Ljung-Box")
+
+# Print the test result
+print(result)
+```
+
+```{r}
+# Combine 'MMWR.Year' and 'MMWR.Week' columns to create a date column
+combined_dataset_disease2$Date <- as.Date(paste0(combined_dataset_disease2$MMWR.Year, "-W", combined_dataset_disease2$MMWR.Week, "-1"), format = "%Y-W%U-%u")
+
+# Extract the relevant time series column (Cryptosporidiosis_Cases_Count)
+time_series_data <- ts(combined_dataset_disease2$Cryptosporidiosis_Cases_Count, frequency = 52)  # Assuming weekly data
+
+# Perform the Ljung-Box test to check for seasonality
+# Specify the number of lags to test (e.g., lag = 52 for yearly seasonality)
+result <- Box.test(time_series_data, lag = 52, type = "Ljung-Box")
+
+# Print the test result
+print(result)
+```
+### Dengue
+### 2020
+
+```{r}
+Disease_4_2020<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_TABLE_1J._Dengue_virus_infections__Dengue_to_Severe_dengue.csv")
+Disease4_20 <- Disease_4_2020[, 1:4]
+colnames(Disease4_20)[4] <- "Dengue_Cases2020"
+```
+
+
+### 2019
+
+```{r}
+Disease4_2019<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_TABLE_1J._Dengue_virus_infections__Dengue_to_Severe_dengue%202019.csv")
+Disease4_19 <-Disease4_2019 [, 1:4]
+colnames(Disease4_19)[4] <- "Dengue_Cases2019"
+```
+
+### 2021
+```{r}
+Disease4_2021<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/NNDSS_-_TABLE_1J._Dengue_virus_infections__Dengue_to_Severe_dengue%202021.csv")
+Disease4_21 <-Disease4_2021 [, 1:4]
+colnames(Disease4_21)[4] <- "Dengue_Cases2021"
+
+```
+
+
+
+### Missing Data:
+#### Creating List of Datasets to Look for Missing data:
+
+```{r}
+dataset_list4 <- list(Disease4_19, Disease4_20,Disease4_21)
+```
+
+```{r}
+summarize_missing <- function(Disease4_19) {
+  Disease4_19 %>%
+    gather(key = "variable", value = "value") %>%
+    summarise(Missing_Values = sum(is.na(value)))
+}
+```
+
+```{r}
+missing_data_summary <- dataset_list4 %>%
+  map(summarize_missing)
+```
+
+
+
+```{r}
+print(missing_data_summary)
+```
+
+### Missing values refer to the weeks with Zero cases. All of them are going to be replaced by zero
+```{r}
+
+
+dataset_list4 <- lapply(dataset_list4, function(df) {
+  df[is.na(df)] <- 0
+  return(df)
+})
+```
+
+```{r}
+# Rename the fourth column in all datasets to "new_common_name"
+dataset_list4 <- lapply(dataset_list4, function(df) {
+  colnames(df)[4] <- "Dengue_Cases_Count"
+  return(df)
+})
+```
+
+```{r}
+# Combine all datasets in dataset_list into a single dataset
+combined_dataset_disease4 <- do.call(rbind, dataset_list4)
+```
+
+```{r}
+head(combined_dataset_disease4)
+```
+
+```{r}
+ggplot(combined_dataset_disease4, aes(x = MMWR.Week, y = Dengue_Cases_Count)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  labs(title = "Dengue Cases Count from 2019 to 2021", x = "Week", y = "Number of Cases")
+```
+### Poisson Regression
+
+```{r}
+set.seed(123)  # Set a seed for reproducibility
+train_size <- 0.8
+train_index <- sample(1:nrow(combined_dataset_disease4), round(train_size * nrow(combined_dataset_disease4)))
+train_data <- combined_dataset_disease4[train_index, ]
+test_data <- combined_dataset_disease4[-train_index, ]
+
+# Fit a Poisson Regression model using the training data
+model <- glm(Dengue_Cases_Count ~ MMWR.Year, data = train_data, family = poisson)
+
+# Make predictions on the test data
+test_predictions <- predict(model, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions - test_data$Dengue_Cases_Count))
+mse <- mean((test_predictions - test_data$Dengue_Cases_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error for Poisson Regression (MAE):", mae, "\n")
+cat("Mean Squared Error for Poisson Regression (MSE):", mse, "\n")
+cat("Root Mean Squared Error for Poisson Regression (RMSE):", rmse, "\n")
+
+# Perform a deviance goodness-of-fit test
+null_model <- glm(Dengue_Cases_Count ~ 1, data = train_data, family = poisson)
+deviance_test <- anova(null_model, model, test = "Chisq")
+print(deviance_test)
+```
+### ANCOVA Model
+```{r}
+# Fit an ANCOVA model
+ancova_model <- lm(Dengue_Cases_Count ~ Reporting.Area + MMWR.Year + MMWR.Week, data = train_data)
+
+# Summarize the ANCOVA results
+summary(ancova_model)
+```
+```{r}
+# Use the ANCOVA model to make predictions on the test dataset
+predictions <- predict(ancova_model, newdata = test_data)
+
+# Calculate MAE
+mae <- mean(abs(predictions - test_data$Dengue_Cases_Count))
+
+# Calculate MSE
+mse <- mean((predictions - test_data$Dengue_Cases_Count)^2)
+
+# Calculate RMSE
+rmse <- sqrt(mse)
+
+# Print the results
+cat("Mean Absolute Error for ANCOVA model (MAE):", mae, "\n")
+cat("Mean Squared Error for ANCOVA model (MSE):", mse, "\n")
+cat("Root Mean Squared Error for ANCOVA model (RMSE):", rmse, "\n")
+```
+### Prediction Data Frame
+```{r}
+# Define the future years
+future_years <- c(2023, 2024, 2025)
+
+# Create a data frame for future predictions
+future_predictions <- data.frame()
+
+# Iterate over each reporting area and future year
+for (area in unique(combined_dataset_disease4$Reporting.Area)) {
+  for (year in future_years) {
+    # Create a new data frame with the reporting area, year, and placeholder value for MMWR.Week
+    new_data <- data.frame(Reporting.Area = area, MMWR.Year = year, MMWR.Week = 1)  # Adjust the placeholder value as needed
+    
+    # Predict the number of cases using the trained ancova_model
+    predicted_cases <- predict(ancova_model, newdata = new_data, type = "response")
+    
+    # Append the results to the future_predictions data frame
+    future_predictions <- rbind(future_predictions, data.frame(Reporting.Area = area, MMWR.Year = year, Predicted_Cases = predicted_cases))
+  }
+}
+
+library(dplyr)
+
+future_predictions <- future_predictions %>%
+  mutate(Predicted_Cases = ifelse(Predicted_Cases < 0 | Predicted_Cases < 1, 0, floor(Predicted_Cases)))
+
+# View the future predictions data frame
+print(future_predictions)
+```
+
+```{r}
+ggplot(future_predictions, aes(x = Reporting.Area, y = Predicted_Cases, fill = factor(MMWR.Year))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Reporting Area", y = "Predicted Cases", fill = "Year") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+```
+### Checking for seasonality
+
+```{r}
+# Combine 'MMWR.Year' and 'MMWR.Week' columns to create a date column
+combined_dataset_disease4$Date <- as.Date(paste0(combined_dataset_disease4$MMWR.Year, "-W", combined_dataset_disease4$MMWR.Week, "-1"), format = "%Y-W%U-%u")
+
+# Extract the relevant time series column (Cryptosporidiosis_Cases_Count)
+time_series_data <- ts(combined_dataset_disease4$Dengue_Cases_Count, frequency = 52)  # Assuming weekly data
+
+ljung_box_test <- Box.test(ts_data, lag = 52, type = "Ljung-Box")
+
+# Check the p-value from the test
+p_value <- ljung_box_test$p.value
+
+# Set a significance level (e.g., 0.05)
+alpha <- 0.05
+
+
+
+# Check if the p-value is less than the significance level
+# Check if p_value is not missing and less than the significance level
+if (!is.na(p_value) && p_value < alpha) {
+  cat("The time series data exhibits seasonality (rejects the null hypothesis)\n")
+} else {
+  cat("The time series data does not exhibit seasonality (fails to reject the null hypothesis)\n")
+}
+```
+
+
+
