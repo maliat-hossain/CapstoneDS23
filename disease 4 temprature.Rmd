@@ -1,0 +1,162 @@
+---
+title: "Disease 4"
+author: "Maliat I"
+date: "2023-11-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+df1 <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/climdiv_state_year_temerature.csv")
+df2 <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/StateNameFIPS.csv")
+```
+
+```{r}
+colnames(df1)[colnames(df1) == "fips"] <- "FIPS.Code"
+```
+
+
+```{r}
+head(df1)
+```
+```{r}
+df_forecast <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/Temp%20Data%2019_23_.csv")
+```
+
+```{r}
+view(df_forecast)
+```
+
+```{r}
+df_forecast$year <- as.numeric(df_forecast$year)
+
+# Create a function to impute missing temperatures based on the specified rules
+impute_temperatures <- function(data) {
+  # Calculate median and mean values
+  median_temp <- median(data$temp[data$year %in% c(2019, 2023)], na.rm = TRUE)
+  mean_temp_2020 <- mean(data$temp[data$year %in% c(2019, 2020, 2023)], na.rm = TRUE)
+  mean_temp_2021 <- mean(data$temp[data$year %in% c(2019, 2020, 2021, 2023)], na.rm = TRUE)
+  
+  for (year in unique(data$year)) {
+    if (year == 2020) {
+      data$temp[data$year == year] <- median_temp
+    } else if (year == 2021) {
+      data$temp[data$year == year] <- mean_temp_2020
+    } else if (year == 2022) {
+      data$temp[data$year == year] <- mean_temp_2021
+    }
+  }
+  
+  return(data)
+}
+# Group by state and apply the impute_temperatures function
+imputed_data <- df_forecast %>%
+  group_by(State.Name) %>%
+  group_modify(~ impute_temperatures(.))
+
+# Sort the data by state and year
+imputed_data <- imputed_data %>%
+  arrange(State.Name, year)
+
+
+```
+```{r}
+# Save the imputed data to a CSV file
+write.csv(imputed_data, "imputed_temperature_data_mean_median.csv", row.names = FALSE)
+```
+
+
+```{r}
+df_forecast$year <- as.numeric(df_forecast$year)
+
+# Create a function to impute missing temperatures based on the specified rules
+impute_temperatures <- function(data) {
+  # Calculate median values
+  median_temp_2020 <- median(data$temp[data$year %in% c(2019, 2023)], na.rm = TRUE)
+  
+  for (year in unique(data$year)) {
+    if (year == 2020) {
+      data$temp[data$year == year] <- median_temp_2020
+    } else if (year == 2021) {
+      data$temp[data$year == year] <- mean(data$temp[data$year %in% c(2019, 2020, 2023)], na.rm = TRUE)
+    } else if (year == 2022) {
+      data$temp[data$year == year] <- mean(data$temp[data$year %in% c(2019, 2020, 2021, 2023)], na.rm = TRUE)
+    }
+  }
+  
+  return(data)
+}
+
+# Group by state and apply the impute_temperatures function
+imputed_data <- df_forecast %>%
+  group_by(State.Name) %>%
+  group_modify(~ impute_temperatures(.))
+
+# Sort the data by state and year
+imputed_data <- imputed_data %>%
+  arrange(State.Name, year)
+
+# Save the imputed data to a CSV file
+write.csv(imputed_data, "imputed new_temperature_data.csv", row.names = FALSE)
+```
+
+```{r}
+view(imputed_data)
+```
+
+```{r}
+### Main
+df_forecast$year <- as.numeric(df_forecast$year)
+
+# Create a function to impute missing temperatures based on the specified rules
+impute_temperatures <- function(data) {
+  # Calculate median for 2020 using df_forecast
+  median_temp_2020 <- median(df_forecast$temp[df_forecast$year %in% c(2019, 2023)], na.rm = TRUE)
+  
+  # Calculate mean for 2021 using available data
+  mean_temp_2021 <- mean(df_forecast$temp[df_forecast$year %in% c(2019, 2020, 2023)], na.rm = TRUE)
+  
+  # Calculate mean for 2022 using available data
+  mean_temp_2022 <- mean(df_forecast$temp[df_forecast$year %in% c(2019, 2020, 2021, 2023)], na.rm = TRUE)
+  
+  # Replace missing values based on the year
+  data$temp[data$year == 2020] <- median_temp_2020
+  data$temp[data$year == 2021] <- mean_temp_2021
+  data$temp[data$year == 2022] <- mean_temp_2022
+  
+  return(data)
+}
+
+# Group by state and apply the impute_temperatures function
+imputed_data <- df_forecast %>%
+  group_by(State.Name) %>%
+  group_modify(~ impute_temperatures(.))
+
+# Sort the data by state and year
+imputed_data <- imputed_data %>%
+  arrange(State.Name, year)
+
+```
+
+
+```{r}
+# Save the imputed data to a CSV file
+write.csv(imputed_data, "main_imputed new_temperature_data.csv", row.names = FALSE)
+```
+
+
