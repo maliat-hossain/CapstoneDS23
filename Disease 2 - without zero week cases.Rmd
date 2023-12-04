@@ -1,0 +1,327 @@
+---
+title: "Cryptosporidiosis"
+author: "Maliat I"
+date: "2023-11-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+combined_dataset_disease2<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/combined_dataset_disease2.csv")
+```
+
+```{r}
+library(lubridate)
+# Sample data with year and week
+year <- 2019
+week <- 2
+
+# Calculate the date by adding (week - 1) * 7 days to January 1st of the year
+start_date <- ymd(paste(year, "01", "01"))
+calculated_date <- start_date + days((week - 1) * 7)
+
+# Print the calculated date
+print(calculated_date)
+```
+
+```{r}
+library(dplyr)
+
+
+combined_dataset_disease2 <- combined_dataset_disease2 %>%
+  mutate(
+    Date = ymd(paste(MMWR.Year, "01", "01")) + days((MMWR.Week - 1) * 7)
+  )
+
+# View the updated dataset with the new "Date" column
+head(combined_dataset_disease2)
+```
+
+```{r}
+library(dplyr)
+
+
+combined_dataset_disease2 <- combined_dataset_disease2 %>%
+  filter(Cryptosporidiosis_Cases_Count> 0)
+
+```
+
+```{r}
+head(combined_dataset_disease2)
+```
+
+
+```{r}
+library(prophet)
+```
+
+```{r}
+# Rename columns for Prophet
+dataset_prophet2 <- combined_dataset_disease2 %>%
+  select(Date, Cryptosporidiosis_Cases_Count) %>%
+  rename(ds = Date, y = Cryptosporidiosis_Cases_Count)
+
+# Create and fit the Prophet model with daily seasonality disabled
+model2 <- prophet(daily.seasonality = FALSE)
+model2 <- fit.prophet(model2, dataset_prophet2)
+
+# Create the future dataframe with the same columns as dataset_prophet
+future2 <- make_future_dataframe(model2, periods = 365)
+
+# Generate forecasts
+forecast2 <- predict(model2, future2)
+
+# Create a "y" column in the future dataset and populate it with predicted values
+future2$y <- forecast2$yhat
+
+# Access predicted values
+predicted_values2 <- forecast2$yhat
+
+# Aggregate predicted values by Reporting.Area
+aggregated_predictions <- forecast2 %>%
+  select(ds, yhat) %>%
+  group_by(ds) %>%
+  summarize(Total_Predicted_Cases = sum(yhat))
+
+# Identify Reporting Areas with the Most Cases in the future by merging with the original dataset
+top_reporting_areas <- combined_dataset_disease2 %>%
+  left_join(aggregated_predictions, by = c("Date" = "ds")) %>%
+  arrange(desc(Total_Predicted_Cases))
+
+# Print the reporting areas with the most predicted cases
+print(top_reporting_areas)
+```
+
+```{r}
+library(forecast)
+
+# Your time series data
+time_series_data <- dataset_prophet2$y  
+
+# Calculate ACF and PACF
+acf_result <- acf(time_series_data, lag.max = 52)  # Adjust lag.max as needed
+pacf_result <- pacf(time_series_data, lag.max = 52)  # Adjust lag.max as needed
+
+# Check for significant peaks in ACF and PACF
+significant_lags_acf <- which(abs(acf_result$acf) > 0.2)  # Adjust the threshold as needed
+significant_lags_pacf <- which(abs(pacf_result$acf) > 0.2)  # Adjust the threshold as needed
+
+# Print significant lags
+cat("Significant lags in ACF:", significant_lags_acf, "\n")
+cat("Significant lags in PACF:", significant_lags_pacf, "\n")
+```
+
+
+```{r}
+suppressWarnings({
+  # Calculate Mean Absolute Error (MAE)
+  mae <- mean(abs(dataset_prophet2$y - forecast2$yhat))
+  cat("Mean Absolute Error (MAE):", mae, "\n")
+
+  # Calculate Root Mean Squared Error (RMSE)
+  rmse <- sqrt(mean((dataset_prophet2$y - forecast2$yhat)^2))
+  cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+  
+  # Calculate the Mean Squared Error (MSE)
+mse <- mean((dataset_prophet2$y - forecast2$yhat)^2)
+
+# Print the MSE score
+cat("Mean Squared Error (MSE):", mse, "\n")
+
+ 
+})
+```
+```{r}
+# Create a dataframe for plotting with actual and predicted values
+plot_data2 <- data.frame(
+  Date = dataset_prophet2$ds,
+  Actual = dataset_prophet2$y,
+  Predicted = future2$y[1:nrow(dataset_prophet2)]  # Extract predicted values for the same time period
+)
+
+# Create a time series plot
+ggplot(plot_data2, aes(x = Date)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1, linetype = "dashed") +
+  labs(
+    title = "Actual vs. Predicted Cryptosporidiosis Cases Count",
+    x = "Date",
+    y = "Cases Count"
+  ) +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal()
+```
+```{r}
+head(future2)
+```
+
+```{r}
+prophet_plot_components(model2, forecast2)
+```
+```{r}
+# Describe seasonality patterns
+describe_seasonality <- function(model2, forecast2) {
+  # Yearly seasonality
+  yearly_desc <- "Yearly seasonality in the data indicates recurring patterns on an annual basis. This suggests that there are factors or events that influence Cryptosporidiosis cases each year."
+
+  # Weekly seasonality
+  weekly_desc <- "Weekly seasonality points to patterns that repeat weekly. It suggests that there are regular fluctuations in cases within a week. This could be related to differences in reporting or data collection practices between weekdays and weekends."
+
+  # Custom seasonality (if added)
+  custom_desc <- ""  # Add custom seasonality descriptions here
+
+  # Strength and impact of seasonality
+  strength_desc <- "The strength of seasonality indicates how much it contributes to the variation in Cryptosporidiosis cases. Strong seasonality means that seasonal patterns have a significant impact on case counts."
+
+  # Possible influences
+  influences_desc <- "Possible influences on seasonality may include factors such as weather changes, seasonal activities, holidays, or other events that affect Cryptosporidiosis case reporting."
+
+  # Temporal changes
+  temporal_changes_desc <- "Seasonality patterns can change over time. It's important to monitor whether there are any noticeable changes in seasonality from year to year."
+
+  # Implications
+  implications_desc <- "Understanding seasonality is crucial for decision-making and public health strategies. It helps in resource allocation and preparedness."
+
+  # Combine descriptions into a single text
+  seasonality_description <- paste(yearly_desc, weekly_desc, custom_desc, strength_desc, influences_desc, temporal_changes_desc, implications_desc, sep = "\n")
+
+  return(seasonality_description)
+}
+
+# Call the function to get the seasonality description
+seasonality_description <- describe_seasonality(model2, forecast2)
+
+# Print the description
+cat(seasonality_description)
+```
+
+```{r}
+
+# Subset the data for the year 2023
+forecast_2023 <- forecast2 %>%
+  filter(year(ds) == 2023)
+
+# Calculate summary statistics for the 'trend' column
+summary(forecast_2023$trend)
+
+# Create a plot to visualize the trend
+library(ggplot2)
+
+ggplot(data = forecast_2023, aes(x = ds, y = trend)) +
+  geom_line() +
+  labs(x = "Date", y = "Trend") +
+  ggtitle("Trend for the Year 2023")
+```
+
+```{r}
+set.seed(123)  # Set a seed for reproducibility
+train_size <- 0.8
+train_index <- sample(1:nrow(combined_dataset_disease2), round(train_size * nrow(combined_dataset_disease2)))
+train_data <- combined_dataset_disease2[train_index, ]
+test_data <- combined_dataset_disease2[-train_index, ]
+
+# Fit a Poisson Regression model using the training data
+model <- glm(Cryptosporidiosis_Cases_Count ~ MMWR.Year, data = train_data, family = poisson)
+
+# Make predictions on the test data
+test_predictions <- predict(model, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions - test_data$Cryptosporidiosis_Cases_Count))
+mse <- mean((test_predictions - test_data$Cryptosporidiosis_Cases_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+# Perform a deviance goodness-of-fit test
+null_model <- glm(Cryptosporidiosis_Cases_Count ~ 1, data = train_data, family = poisson)
+deviance_test <- anova(null_model, model, test = "Chisq")
+print(deviance_test)
+```
+```{r}
+future_years <- c(2023, 2024, 2025)
+
+# Create a data frame for future predictions
+future_predictions <- data.frame()
+
+# Iterate over each reporting area and future year
+for (area in unique(combined_dataset_disease2$Reporting.Area)) {
+  for (year in future_years) {
+    # Create a new data frame with the reporting area and year
+    new_data <- data.frame(Reporting.Area = area, MMWR.Year = year)
+    
+    # Predict the number of cases using the trained Poisson Regression model
+    predicted_cases <- predict(model, newdata = new_data, type = "response")
+    
+    # Append the results to the future_predictions data frame
+    future_predictions <- rbind(future_predictions, data.frame(Reporting.Area = area, MMWR.Year = year, Predicted_Cases = predicted_cases))
+  }
+}
+
+future_predictions <- future_predictions %>%
+  mutate(Predicted_Cases = ifelse(Predicted_Cases < 0 | Predicted_Cases < 1, 0, floor(Predicted_Cases)))
+
+
+# View the future predictions data frame
+print(future_predictions)
+```
+```{r}
+# Fit an ANCOVA model
+ancova_model2 <- lm(Cryptosporidiosis_Cases_Count ~ Reporting.Area + MMWR.Year + MMWR.Week, data = train_data)
+
+# Summarize the ANCOVA results
+summary(ancova_model2)
+```
+
+```{r}
+# Make predictions on the test data
+test_predictions2 <- predict(ancova_model2, newdata = test_data, type = "response")
+
+# Calculate evaluation metrics
+mae <- mean(abs(test_predictions2 - test_data$Cryptosporidiosis_Cases_Count))
+mse <- mean((test_predictions2 - test_data$Cryptosporidiosis_Cases_Count)^2)
+rmse <- sqrt(mse)
+
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+```
+
+```{r}
+# Define the future years
+future_years2 <- c(2023, 2024, 2025)
+
+# Create a data frame for future predictions
+future_predictions2 <- data.frame()
+
+# Iterate over each reporting area and future year
+for (area in unique(combined_dataset_disease2$Reporting.Area)) {
+  for (year in future_years2) {
+    # Create a new data frame with the reporting area, year, and placeholder value for MMWR.Week
+    new_data <- data.frame(Reporting.Area = area, MMWR.Year = year, MMWR.Week = 1)  # Adjust the placeholder value as needed
+    
+    # Predict the number of cases using the trained ancova_model
+    predicted_cases2 <- predict(ancova_model2, newdata = new_data, type = "response")
+    
+    # Append the results to the future_predictions data frame
+    future_predictions2 <- rbind(future_predictions2, data.frame(Reporting.Area = area, MMWR.Year = year, Predicted_Cases2 = predicted_cases2))
+  }
+}
+
+future_predictions2 <- future_predictions2 %>%
+  mutate(Predicted_Cases2 = ifelse(Predicted_Cases2 < 0 | Predicted_Cases2 < 1, 0, floor(Predicted_Cases2)))
+
+
+# View the future predictions data frame
+print(future_predictions2)
+```
+
