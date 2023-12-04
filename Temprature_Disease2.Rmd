@@ -1,0 +1,425 @@
+---
+title: "US States Temprature"
+author: "Maliat I"
+date: "2023-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+df1 <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/climdiv_state_year_temerature.csv")
+df2 <- read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/StateNameFIPS.csv")
+```
+
+```{r}
+colnames(df1)[colnames(df1) == "fips"] <- "FIPS.Code"
+```
+
+```{r}
+head(df1)
+```
+
+
+```{r}
+class(df1$`FIPS.Code`)
+class(df2$`FIPS.Code`)
+```
+
+
+```{r}
+head(df2)
+```
+```{r}
+merged_df2 <- merge(df1, df2, by = "FIPS.Code", all.x = TRUE)
+```
+
+```{r}
+view(merged_df2)
+```
+
+```{r}
+disease2_temp<-read.csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/combined_dataset_disease2.csv")
+```
+
+```{r}
+yearly_dataset2 <- disease2_temp %>%
+  group_by(Reporting.Area, MMWR.Year) %>%
+  summarize(Yearly_Case_Count = sum(Cryptosporidiosis_Cases_Count))
+
+```
+
+
+```{r}
+yearly_dataset2 <- yearly_dataset2 %>%
+  rename(State.Name = Reporting.Area)
+```
+
+
+
+
+```{r}
+head(yearly_dataset2)
+```
+```{r}
+filtered_df2 <- merged_df2 %>%
+  filter(year %in% c(2019, 2020, 2021, 2022))
+```
+
+```{r}
+merged_df_state2 <- merge(yearly_dataset2, filtered_df2, by = "State.Name", all.x = TRUE)
+```
+
+```{r}
+head(merged_df_state2)
+```
+
+```{r}
+#merged_df_state2 <- merge(yearly_dataset2, filtered_df2, by = "State.Name", all.x = TRUE)
+```
+
+### Dealing with missing temprature
+```{r}
+library(zoo)
+```
+
+
+
+```{r}
+correlation <- cor(merged_df_state2$temp, merged_df_state2$Yearly_Case_Count, use = "complete.obs")
+
+# Print the correlation coefficient
+cat("Correlation coefficient:", correlation, "\n")
+```
+```{r}
+ggplot(merged_df_state2, aes(x = temp, y = Yearly_Case_Count)) +
+  geom_point() +
+  labs(x = "Temperature", y = "Yearly Case Count") +
+  ggtitle("Scatter Plot of Temperature vs. Yearly Case Count")
+```
+### Imputing missing temprature with Mean
+
+```{r}
+
+# Replace missing values in 'temp' with the mean
+#merged_df_state2$temp[is.na(merged_df_state2$temp)] <- mean(merged_df_state2$temp, na.rm = TRUE)
+```
+
+```{r}
+#head(merged_df_state2)
+```
+
+
+
+```{r}
+
+# Fit a linear regression model to predict 'temp' based on other variables
+model <- lm(temp ~  MMWR.Year, data = merged_df_state2)
+
+# Predict missing values using the regression model
+merged_df_state2$temp[is.na(merged_df_state2$temp)] <- predict(model, newdata = merged_df_state2[is.na(merged_df_state2$temp), ])
+```
+
+```{r}
+correlation <- cor(merged_df_state2$temp, merged_df_state2$Yearly_Case_Count, use = "complete.obs")
+
+# Print the correlation coefficient
+cat("Correlation coefficient:", correlation, "\n")
+```
+
+```{r}
+correlation <- cor(merged_df_state2$temp, merged_df_state2$Yearly_Case_Count, use = "complete.obs")
+
+# Print the correlation coefficient
+cat("Correlation coefficient:", correlation, "\n")
+```
+### Imputing temprature change
+```{r}
+# Fit a linear regression model to predict 'temp' based on other variables
+model1 <- lm(tempc ~  MMWR.Year + Yearly_Case_Count+temp, data = merged_df_state2)
+
+# Predict missing values using the regression model
+merged_df_state2$tempc[is.na(merged_df_state2$tempc)] <- predict(model1, newdata = merged_df_state2[is.na(merged_df_state2$tempc), ])
+```
+
+```{r}
+correlation <- cor(merged_df_state2$tempc, merged_df_state2$Yearly_Case_Count, use = "complete.obs")
+
+# Print the correlation coefficient
+cat("Correlation coefficient:", correlation, "\n")
+```
+
+
+```{r}
+head(merged_df_state2)
+```
+
+```{r}
+# Filter the data for the years 2011 to 2019
+filtered_df <- subset(df1, year >= 2011 & year <= 2019)
+
+# Create a line plot to visualize temperature trends over the years
+ggplot(data = filtered_df, aes(x = year, y = temp)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend from 2011 to 2019")
+```
+
+
+```{r}
+ggplot(data = merged_df_state2, aes(x = year, y = temp, group = State.Name, color = State.Name)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend by State Over the Years")
+```
+```{r}
+
+ggplot(data = merged_df_state2, aes(x = State.Name, y = temp, fill = State.Name)) +
+  geom_bar(stat = "identity") +
+  labs(x = "State.Name", y = "Temperature") +
+  ggtitle("Temperature Trend by State")
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Aggregate data to calculate the average temperature by state
+agg_data <- merged_df_state2 %>%
+  group_by(State.Name) %>%
+  summarise(Avg_Temperature = mean(temp, na.rm = TRUE))
+
+# Create a bar chart to visualize the average temperature by state
+ggplot(data = agg_data, aes(x = State.Name, y = Avg_Temperature, fill = State.Name)) +
+  geom_bar(stat = "identity") +
+  labs(x = "State.Name", y = "Average Temperature") +
+  ggtitle("Average Temperature by State")
+```
+```{r}
+# Filter the data for the state of Alabama
+alabama_data <- df1 %>%
+  filter(FIPS.Code== "1")
+
+# Create a bar chart to visualize the temperature trend for Alabama
+ggplot(data = alabama_data, aes(x = year, y = temp)) +
+  geom_line(stat = "identity") +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Alabama Over the Years")
+```
+```{r}
+# Filter the data for the state of Arkansas
+alabama_data <- df1 %>%
+  filter(FIPS.Code== "5")
+
+# Create a bar chart to visualize the temperature trend for Arizona
+ggplot(data = alabama_data, aes(x = year, y = temp)) +
+  geom_line(stat = "identity") +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Arkansas Over the Years")
+```
+```{r}
+# Filter the data for the state of Arizona
+alabama_data <- df1 %>%
+  filter(FIPS.Code== "4")
+
+# Create a bar chart to visualize the temperature trend for Arizona
+ggplot(data = alabama_data, aes(x = year, y = temp)) +
+  geom_line(stat = "identity") +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Arizona Over the Years")
+```
+```{r}
+# Filter the data for the state of California
+alabama_data <- df1 %>%
+  filter(FIPS.Code== "6")
+
+# Create a bar chart to visualize the temperature trend for California
+ggplot(data = alabama_data, aes(x = year, y = temp)) +
+  geom_line(stat = "identity") +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in California Over the Years")
+```
+```{r}
+# Filter the data for the state of Colorado
+alabama_data <- df1 %>%
+  filter(FIPS.Code== "8")
+
+# Create a bar chart to visualize the temperature trend for Colorado
+ggplot(data = alabama_data, aes(x = year, y = temp)) +
+  geom_line(stat = "identity") +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Colorado Over the Years")
+```
+
+
+```{r}
+agg_data <- df1 %>%
+  group_by(year) %>%
+  summarise(Avg_Temperature = mean(temp, na.rm = TRUE))
+
+# Create a line plot to visualize the overall temperature trend
+ggplot(data = agg_data, aes(x = year, y = Avg_Temperature)) +
+  geom_line() +
+  labs(x = "Year", y = "Average Temperature") +
+  ggtitle("Overall Temperature Trend (1895-2019)")
+```
+```{r}
+df1 %>%
+  ggplot(aes(x = year, y = temp)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend by FIPS Code") +
+  facet_wrap(~FIPS.Code, ncol = 2)
+```
+```{r}
+df1 %>%
+  filter(year >= 2011 & year <= 2019) %>%
+  group_by(FIPS.Code) %>%
+  ggplot(aes(x = year, y = temp)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend by FIPS Code (2011-2019)") +
+  facet_wrap(~FIPS.Code, ncol = 2)
+```
+```{r}
+filtered_data <- df1 %>%
+  filter(FIPS.Code == 10, year >= 2011, year <= 2019)
+
+# Create a line plot to visualize the temperature trend for FIPS code 10
+ggplot(data = filtered_data, aes(x = year, y = temp)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Delaware (2011-2019)")
+```
+```{r}
+filtered_data <- df1 %>%
+  filter(FIPS.Code == 1, year >= 2011, year <= 2019)
+
+# Create a line plot to visualize the temperature trend for FIPS code 10
+ggplot(data = filtered_data, aes(x = year, y = temp)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Alabama (2011-2019)")
+```
+
+```{r}
+filtered_data <- df1 %>%
+  filter(FIPS.Code == 13, year >= 2011, year <= 2019)
+
+# Create a line plot to visualize the temperature trend for FIPS code 10
+ggplot(data = filtered_data, aes(x = year, y = temp)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend in Georgia (2011-2019)")
+```
+```{r}
+# Group the data by State.Name and MMWR.Year, then summarize the data
+summary_data <- merged_df_state2 %>%
+  group_by(State.Name, MMWR.Year) %>%
+  summarise(Yearly_Case_Count = sum(Yearly_Case_Count, na.rm = TRUE),
+            Avg_Temperature = mean(temp, na.rm = TRUE))
+
+# Print the summary data
+print(summary_data)
+```
+```{r}
+ggplot(data = merged_df_state2, aes(x = year, y = temp, group = State.Name, color = State.Name)) +
+  geom_line() +
+  labs(x = "Year", y = "Temperature") +
+  ggtitle("Temperature Trend by State Over the Years")
+```
+
+```{r}
+# Group data by State.Name
+state_groups <- merged_df_state2 %>%
+  group_by(State.Name)
+
+# Function to calculate temperature and case count trends for each state
+calculate_trends <- function(df) {
+  # Linear regression for temperature trends
+  temp_trend <- lm(tempc ~ MMWR.Year, data = df)  # Updated to use 'tempc' for temperature
+  
+  # Linear regression for case count trends
+  case_count_trend <- lm(Yearly_Case_Count ~ MMWR.Year, data = df)
+  
+  # Calculate slopes for temperature and case count trends
+  temp_slope <- coef(temp_trend)[2]
+  case_count_slope <- coef(case_count_trend)[2]
+  
+  return(data.frame(Temp_Slope = temp_slope, Case_Count_Slope = case_count_slope))
+}
+
+# Apply the calculate_trends function to each state group
+trend_results <- state_groups %>%
+  do(calculate_trends(.))
+
+```
+
+```{r}
+# Print the results
+print(trend_results)
+```
+```{r}
+filtered_states1 <- trend_results %>%
+  filter(Temp_Slope > 0, Case_Count_Slope > 0)
+
+# Print the filtered states
+print(filtered_states1)
+```
+
+```{r}
+filtered_states2 <- trend_results %>%
+  filter(Temp_Slope > 0, Case_Count_Slope < 0)
+
+# Print the filtered states
+print(filtered_states2)
+```
+```{r}
+filtered_states2 <- trend_results %>%
+  filter(Temp_Slope == 0, Case_Count_Slope == 0)
+
+# Print the filtered states
+print(filtered_states2)
+```
+
+```{r}
+
+#write.csv(merged_df_state2, file = "merged_df_state2.csv", row.names = FALSE)
+
+```
+
+```{r}
+head(df1)
+```
+
+```{r}
+
+# Create a linear regression model to predict temperature
+temperature_trend_model <- lm(temp ~ year, data = df1)
+
+# Get the coefficient for the 'year' predictor
+temperature_slope <- coef(temperature_trend_model)[2]
+
+# Check if the slope is positive, negative, or close to zero
+if (temperature_slope > 0) {
+  cat("The overall temperature is increasing over time.\n")
+} else if (temperature_slope < 0) {
+  cat("The overall temperature is decreasing over time.\n")
+} else {
+  cat("The overall temperature is relatively stable with little to no change.\n")
+}
+```
+
+```{r}
+view(trend_results)
+```
