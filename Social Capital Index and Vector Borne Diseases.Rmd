@@ -1,0 +1,124 @@
+---
+title: "Dengue Cases around he world"
+author: "Maliat I"
+date: "2023-12-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+```{r}
+
+dengue_data <- read_csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/National_AFGHANISTAN_20200501_20230501.csv")
+
+
+dengue_data$dengue_total <- as.numeric(dengue_data$dengue_total)
+
+# Group by country and year, then summarize the annual cases
+annual_cases <- dengue_data %>%
+  group_by(Country, Year) %>%
+  summarize(annual_cases = sum(dengue_total, na.rm = TRUE))
+
+# View the summarized data
+print(annual_cases)
+
+```
+### social Capital Data
+```{r}
+social_capital_data <- read_csv("https://raw.githubusercontent.com/maliat-hossain/FileProcessing/main/social%20capital%20index.csv")
+```
+```{r}
+head(social_capital_data)
+```
+```{r}
+dengue_2023 <- annual_cases %>%
+  filter(Year == 2023)
+
+```
+
+```{r}
+head(dengue_2023)
+```
+```{r}
+# Merge the dataframes by Country
+
+
+# Convert country names to the same case 
+dengue_2023$Country <- toupper(dengue_2023$Country)
+social_capital_data$Country <- toupper(social_capital_data$Country)
+combined_data <- merge(dengue_2023, social_capital_data, by = "Country", all = TRUE)
+
+combined_data <- na.omit(combined_data)
+
+# Calculate the correlation matrix for the numerical columns
+cor_matrix <- cor(combined_data[, c("annual_cases", "Score")], use = "complete.obs", method = "pearson")
+
+# Print the correlation matrix
+print(cor_matrix)
+
+```
+```{r}
+cor_test_result <- cor.test(combined_data$annual_cases, combined_data$Score, method = "pearson")
+
+# The correlation coefficient
+cor_coefficient <- cor_test_result$estimate
+
+# The p-value of the correlation
+p_value <- cor_test_result$p.value
+
+# Print the results
+print(paste("Correlation coefficient:", cor_coefficient))
+print(paste("P-value:", p_value))
+
+```
+```{r}
+head(combined_data)
+```
+
+```{r}
+# Sorting the data by annual_cases in descending order
+sorted_data <- combined_data[order(-combined_data$annual_cases), ]
+
+# Selecting the top countries with the highest dengue cases
+# Let's say you want the top 5 countries
+top_countries <- head(sorted_data, 5)
+
+# Printing the result
+print(top_countries)
+
+```
+```{r}
+library(ggplot2)
+
+plot_correlation <- function(data, xvar, yvar) {
+  plot <- ggplot(data, aes_string(x=xvar, y=yvar)) +
+          geom_point() +
+          theme_minimal() +
+          ggtitle(paste("Correlation between", xvar, "and", yvar)) +
+          geom_smooth(method='lm', color='blue') +
+          geom_text(aes(label = paste("R =", round(cor(data[[xvar]], data[[yvar]], use="complete.obs"), 2))),
+                    x = Inf, y = Inf, hjust = 1.1, vjust = 1.1)
+  return(plot)
+}
+
+# Creating plots
+plot_year_cases <- plot_correlation(combined_data, "Year", "annual_cases")
+plot_rank_cases <- plot_correlation(combined_data, "Rank", "annual_cases")
+plot_score_cases <- plot_correlation(combined_data, "Score", "annual_cases")
+
+# Displaying the plots
+plot_year_cases
+plot_rank_cases
+plot_score_cases
+
+
+
+```
+
