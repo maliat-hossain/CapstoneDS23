@@ -102,7 +102,7 @@ print(top_reporting_areas)
 ```{r}
 library(forecast)
 
-# Your time series data
+
 time_series_data <- dataset_prophet2$y  
 
 # Calculate ACF and PACF
